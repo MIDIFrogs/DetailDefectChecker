@@ -276,37 +276,39 @@ const removeImage = (index: number) => {
             }"
           >
             <div class="defect-header">
-              <h3 class="defect-name medium-text">{{ detection.className }}</h3>
-              <div 
-                class="status-badge"
-                :class="{ failed: !detection.passed }"
-              >
-                {{ detection.passed ? 'PASSED' : 'FAILED' }}
+              <div class="defect-title">
+                <h3 class="defect-name medium-text">{{ detection.className }}</h3>
+                <div 
+                  class="status-badge"
+                  :class="{ 'status-passed': detection.passed, 'status-failed': !detection.passed }"
+                >
+                  {{ detection.passed ? 'ПРОЙДЕНО' : 'НЕ ПРОЙДЕНО' }}
+                </div>
               </div>
             </div>
             <div class="defect-details light-text">
               <div class="detail-row">
-                <span class="detail-label">Defects:</span>
+                <span class="detail-label">Дефектов:</span>
                 <span>{{ detection.defectsCount }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Size:</span>
+                <span class="detail-label">Размер:</span>
                 <span>{{ detection.calculatedSize.width.toFixed(2) }}x{{ detection.calculatedSize.height.toFixed(2) }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Size check:</span>
+                <span class="detail-label">Проверка размера:</span>
                 <span :class="detection.sizePassed ? 'passed' : 'failed'">
-                  {{ detection.sizePassed ? 'Passed' : 'Failed' }}
+                  {{ detection.sizePassed ? 'Пройдена' : 'Не пройдена' }}
                 </span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Surface:</span>
-                <span>{{ detection.isRough ? 'Rough' : 'Smooth' }}</span>
+                <span class="detail-label">Поверхность:</span>
+                <span>{{ detection.isRough ? 'Шероховатая' : 'Гладкая' }}</span>
               </div>
             </div>
           </div>
           <div v-else class="no-defects light-text">
-            {{ isLoading ? 'Analyzing defects...' : 'No defects detected' }}
+            {{ isLoading ? 'Анализ дефектов...' : 'Дефектов не обнаружено' }}
           </div>
         </div>
       </section>
@@ -570,12 +572,16 @@ const removeImage = (index: number) => {
   padding: 1rem;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 12px;
+  margin-left: 0;
+  width: fit-content;
 }
 
 .defects-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+  justify-content: flex-start;
+  max-width: 100%;
 }
 
 .defect-card {
@@ -583,6 +589,8 @@ const removeImage = (index: number) => {
   border-radius: 8px;
   padding: 1.5rem;
   transition: all 0.3s ease;
+  width: 300px;
+  flex-shrink: 0;
 }
 
 .defect-card:hover {
@@ -591,29 +599,39 @@ const removeImage = (index: number) => {
 }
 
 .defect-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 1rem;
+}
+
+.defect-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .defect-name {
   margin: 0;
   color: #262626;
   font-size: 1.2rem;
+  flex-grow: 1;
 }
 
 .status-badge {
   padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  background: #729BAD;
-  color: white;
-  font-size: 0.8rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
   letter-spacing: 0.05em;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.status-badge.failed {
-  background: #838385;
+.status-passed {
+  background: rgba(75, 181, 67, 0.1);
+  color: #4BB543;
+}
+
+.status-failed {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
 }
 
 .defect-details {
@@ -633,17 +651,17 @@ const removeImage = (index: number) => {
 }
 
 .passed {
-  color: #729BAD;
+  color: #4BB543;
 }
 
 .failed {
-  color: #838385;
+  color: #EF4444;
 }
 
 .no-defects {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 2rem;
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
   color: #262626;
   font-style: italic;
 }
