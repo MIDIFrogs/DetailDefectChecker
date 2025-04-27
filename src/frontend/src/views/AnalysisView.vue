@@ -317,7 +317,7 @@ const removeImage = (index: number) => {
 <style scoped>
 .analysis-view {
   min-height: 100vh;
-  /*display: flex;*/
+  display: flex;
   flex-direction: column;
   background: #FDF4E3;
 }
