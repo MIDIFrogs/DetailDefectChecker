@@ -3,7 +3,7 @@ import os
 from typing import List, Dict
 from PIL import Image
 import requests
-from detections_service import process_image
+from detections_service import process_image, preprocess_image
 from image_service import save_image
 from flask_cors import CORS
 
@@ -30,8 +30,9 @@ def process():
     scale_y = request.form.get("scale_y", 0.01, type=float)
 
     image = Image.open(image_file)
-    image_id = save_image(image, PROCESSED_IMAGES_DIR)
-    result = process_image(image, scale_x, scale_y)
+    processed, details, defects = preprocess_image(image)
+    image_id = save_image(processed, PROCESSED_IMAGES_DIR)
+    result = process_image(image, details, defects, scale_x, scale_y)
     result["downloadId"] = image_id
     return jsonify(result)
 
