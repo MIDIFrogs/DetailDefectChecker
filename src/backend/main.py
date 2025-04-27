@@ -4,6 +4,7 @@ from typing import List, Dict
 from PIL import Image
 from detections_service import process_image
 from image_service import save_image
+from flask_cors import CORS
 
 app = Flask(__name__)
 
@@ -33,3 +34,4 @@ def download(id: int):
 
 if __name__ == "__main__":
     app.run(debug=True)
+    CORS(app)

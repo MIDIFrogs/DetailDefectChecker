@@ -1,6 +1,13 @@
 from typing import List, Dict
 from PIL import Image
 import math
+"""
+from ultralytics import YOLO
+
+detailFinder = YOLO("details.pt") # Detection model that finds detail classes
+blurDetector = ... # An OpenCV service that checks if an image is rough (has visual artifacts)
+defectsFinder = YOLO("defects.pt") # Detection model that checks if detected detai has defects
+"""
 
 class Detection:
     def __init__(self, bbox, calculated_size, class_name, defects_count, is_rough, passed, size_passed):
