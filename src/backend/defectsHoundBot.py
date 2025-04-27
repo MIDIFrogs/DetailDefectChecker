@@ -4,9 +4,7 @@ import os
 import yaml
 import numpy as np
 import response
-
-# YOLO
-model  = YOLO('model.pt')
+import requests
 
 # Resources
 config = {}
@@ -18,8 +16,34 @@ if (os.path.exists("startup.config")):
             config[key] = value
 
 
+def call_api(image: bytes, scale_x: float = 0.01, scale_y: float = 0.01) -> response.Response:
+    url = "http://localhost:5000/api/process"  
+    files = {'image': ('image.png', image)}  # Указываем имя файла и его содержимое
+    data = {
+        'scale_x': scale_x,
+        'scale_y': scale_y
+    }
+    response_data = requests.post(url, files=files, data=data)  # Отправляем файл как часть формы
+        
+    if response_data.status_code == 200:
+        return response.from_json(response_data.text)  # Десериализуем JSON в объект Response
+    else:
+        print(f"Error: {response_data.status_code}, {response_data.text}")
+        return {}
+
+def download_image(image_id: int) -> bytes:
+    url = f"http://localhost:5000/api/download/{image_id}"  
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        return response.content  
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
+
+
 # Bot helper functions
-def createAnswer(response: Response):
+def createAnswer(response, id):
     answer = ""
     
     for detection in response.detections:
@@ -30,7 +54,8 @@ def createAnswer(response: Response):
             answer += f"Шероховатость: {'✅' if detection.is_rough else '❌'}\n"
             answer += f"Соответствие размеру: {'✅' if detection.size_passed else '❌'}\n"
             answer += f"Количество дефектов: {detection.defects_count}\n"
-    return answer
+        bot.send_message(id, answer)
+    bot.send_photo(id, download_image(response.download_id))
 
 # Bot section
 
@@ -43,24 +68,23 @@ def welcome(message):
     '''
     sticker = open('Resources/hi.webp', 'rb')
     bot.send_sticker(message.chat.id, sticker)
-    bot.send_message(message.chat.id, localization["HelloMessage"])
+    bot.send_message(message.chat.id, "Здравствуй, дорогой пользователь. Наш бот поможет тебе с обработкой дефектов деталей . Просто отправь фото и бот ответит, есть ли на нем дефекты, при наличии подсветит их Также определит размер детали и определит есть ли на ней шероховатость.")
 
 @bot.message_handler(content_types=['photo'])
 def OnPhotoRecieve(message):
-    '''Handles photo request from user.
-
-    Args:
-        'message': Telegram message with image for the bot. 
-    '''
+    '''Handles photo request from user.'''
     try:
-        bot.send_chat_action(message.chat.id, 'typing')\
-        # Get the photo from user.
-        photo = message.photo[-1]
-        #Ivan take photo
-        createAnswer(ivan.isCorrespondent(), ivan.isRough(), ivan.isDefective())
-        bot.send_photo(message.chat.id, ivan.givePhoto()) 
-    except:
-        bot.send_message(message.chat.id, localization["UnexpectedErrorMessage"])
+        bot.send_chat_action(message.chat.id, 'typing')
+        # Получаем байтовые данные изображения
+        image_data = bot.download_file(bot.get_file(message.photo[-1].file_id).file_path)
+        response_obj = call_api(image_data)  # Передаем байтовые данные в API
+        if isinstance(response_obj, response.Response):  # Проверяем, что это объект Response
+            createAnswer(response_obj, message.chat.id)
+        else:
+            bot.send_message(message.chat.id, "Ошибка при обработке ответа от сервера.")
+    except Exception as e:
+        bot.send_message(message.chat.id, "Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова или используйте другое изображение.")
+        print(e)
 
 @bot.message_handler(content_types=['text', 'sticker', 'video' 'voice'])
 def OnWrongContentType(message):
@@ -70,7 +94,7 @@ def OnWrongContentType(message):
         'message': Telegram message with any content instead of photos.
     '''
     sticker = open('Resources/wrong.webp', 'rb')
-    bot.send_message(message.chat.id, localization["WrongTypeMessage"])
+    bot.send_message(message.chat.id, "К сожалению, это не то, что мне нужно. Я могу обрабатывать только фотографии форматов: jpg,jpeg,png, а не какой-то случайный текст. Чтобы продолжить работу мне нужно получить конкретное изображение.")
     bot.send_sticker(message.chat.id, sticker)
 
 @bot.message_handler(content_types=['document'])
@@ -82,13 +106,10 @@ def OnFileRecieve(message):
     '''
     try:
         bot.send_chat_action(message.chat.id, 'typing')
-        file = message.document
-        if file.file_name.endswith('.jpg') or file.file_name.endswith('.jpeg') or file.file_name.endswith('.png'):
-            boxImage(message, file)
-        else:
-            bot.send_message(message.chat.id, localization["WrongTypeMessage"])
+        response = call_api(bot.download_file(bot.get_file(message.photo[-1].file_id).file_path))
+        createAnswer(response, message.chat.id)
     except:
-        bot.send_message(message.chat.id, localization["UnexpectedErrorMessage"])
 
+        bot.send_message(message.chat.id, "Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова или используйте другое изображение.")
 # Startup the bot
 bot.polling(none_stop = True)
