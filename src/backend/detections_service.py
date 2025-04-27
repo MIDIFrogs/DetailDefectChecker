@@ -79,10 +79,10 @@ def preprocess_image(image: Image.Image) -> Tuple[Image.Image, list, list]:
 
 def draw_bounding_box(draw: ImageDraw.ImageDraw, x, y, width, height, class_name, score, font, color):
     """Draw a bounding box with the class name and score on the image."""
-    draw.rectangle([(x, y), (x + width, y + height)], outline=color, width=2)
+    draw.rectangle([(x - width // 2, y - height // 2), (x + width // 2, y + height // 2)], outline=color, width=2)
     text = f"{class_name} ({score:.2f})"
     text_size = draw.textbbox((0, 0), text, font)[2:]
-    draw.text((x, y - text_size[1] - 4), text, font=font, fill=color)
+    draw.text((x - width // 2, y - height // 2 - text_size[1] - 4), text, font=font, fill=color)
 
 def process_image(image: Image.Image, detail_results: list, defect_results: list, scale_x: float, scale_y: float) -> Dict:
     """
