@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { processImage, downloadImage, type ProcessedImage } from '../api';
+import { processImage, downloadImage } from '../api';
 
 interface ImageFile {
   id?: string;
@@ -26,34 +26,85 @@ interface ImageFile {
     passed: boolean;
     sizePassed: boolean;
   }>;
+  loadError?: boolean;
 }
 
 const router = useRouter();
 const selectedImages = ref<ImageFile[]>([]);
-const currentImage = ref<ImageFile | null>(null);
+const currentImageIndex = ref(0);
 const isLoading = ref(false);
+
+const currentImage = computed(() => {
+  return selectedImages.value[currentImageIndex.value] || null;
+});
 
 onMounted(async () => {
   const storedImages = localStorage.getItem('uploadedImages');
   if (storedImages) {
-    selectedImages.value = JSON.parse(storedImages);
-    if (selectedImages.value.length > 0) {
-      await selectImage(selectedImages.value[0]);
+    const parsedImages = JSON.parse(storedImages);
+    if (parsedImages.length > 0) {
+      // First set the images without URLs to show loading state
+      selectedImages.value = parsedImages;
+      
+      // Then load all images in parallel
+      await Promise.all(
+        parsedImages.map(async (image: ImageFile, index: number) => {
+          if (image.id) {
+            try {
+              const url = await downloadImage(image.id);
+              // Update each image individually to maintain reactivity
+              selectedImages.value[index] = {
+                ...selectedImages.value[index],
+                url
+              };
+            } catch (error) {
+              console.error(`Error downloading image ${image.id}:`, error);
+              // Keep the image in the list but mark it as failed
+              selectedImages.value[index] = {
+                ...selectedImages.value[index],
+                loadError: true
+              };
+            }
+          }
+        })
+      );
+      currentImageIndex.value = 0;
     }
   } else {
     router.push('/');
   }
 });
 
-const selectImage = async (image: ImageFile) => {
-  if (!image.url && image.id) {
+const selectImage = async (image: ImageFile, index: number) => {
+  currentImageIndex.value = index;
+  if (!image.url && image.id && !image.loadError) {
     try {
-      image.url = await downloadImage(image.id);
+      const url = await downloadImage(image.id);
+      // Update the image URL in the array to maintain reactivity
+      selectedImages.value[index] = {
+        ...selectedImages.value[index],
+        url
+      };
     } catch (error) {
-      console.error('Error downloading image:', error);
+      console.error(`Error downloading image ${image.id}:`, error);
+      selectedImages.value[index] = {
+        ...selectedImages.value[index],
+        loadError: true
+      };
     }
   }
-  currentImage.value = image;
+};
+
+const nextImage = () => {
+  if (currentImageIndex.value < selectedImages.value.length - 1) {
+    selectImage(selectedImages.value[currentImageIndex.value + 1], currentImageIndex.value + 1);
+  }
+};
+
+const previousImage = () => {
+  if (currentImageIndex.value > 0) {
+    selectImage(selectedImages.value[currentImageIndex.value - 1], currentImageIndex.value - 1);
+  }
 };
 
 const handleNewFiles = async (e: Event) => {
@@ -83,7 +134,7 @@ const handleNewFiles = async (e: Event) => {
           newImage.url = await downloadImage(processedData.downloadId);
           
           if (!currentImage.value) {
-            currentImage.value = newImage;
+            currentImageIndex.value = selectedImages.value.length - 1;
           }
         }
       }
@@ -98,12 +149,11 @@ const handleNewFiles = async (e: Event) => {
 };
 
 const removeImage = (index: number) => {
-  const removedImage = selectedImages.value[index];
   selectedImages.value.splice(index, 1);
   localStorage.setItem('uploadedImages', JSON.stringify(selectedImages.value));
   
-  if (currentImage.value === removedImage) {
-    currentImage.value = selectedImages.value[0] || null;
+  if (currentImageIndex.value >= selectedImages.value.length) {
+    currentImageIndex.value = Math.max(0, selectedImages.value.length - 1);
   }
   
   if (selectedImages.value.length === 0) {
@@ -115,14 +165,21 @@ const removeImage = (index: number) => {
 <template>
   <div class="analysis-view">
     <header class="header">
-      <h1>Image Analyzer</h1>
+      <h1 class="medium-text">Image Analyzer</h1>
     </header>
 
     <main class="main-content">
-      <div class="content-grid">
-        <!-- Image Preview -->
-        <section class="preview-section">
+      <div class="top-section">
+        <!-- Main Image Preview -->
+        <div class="preview-section">
           <div class="preview-container">
+            <button 
+              class="nav-button prev"
+              :disabled="currentImageIndex === 0"
+              @click="previousImage"
+            >
+              ←
+            </button>
             <img
               v-if="currentImage?.url"
               :src="currentImage.url"
@@ -135,32 +192,38 @@ const removeImage = (index: number) => {
             <div v-else class="no-preview light-text">
               No image selected
             </div>
+            <button 
+              class="nav-button next"
+              :disabled="currentImageIndex >= selectedImages.length - 1"
+              @click="nextImage"
+            >
+              →
+            </button>
           </div>
-        </section>
+        </div>
 
-        <!-- Image List -->
-        <section class="image-list-section">
-          <div class="image-list-header">
-            <h2>Загруженные изображения</h2>
-          </div>
+        <!-- Image List Section -->
+        <div class="image-list-section">
           <div class="image-list">
             <div
               v-for="(image, index) in selectedImages"
               :key="index"
-              class="image-item"
-              :class="{ active: image === currentImage }"
-              @click="selectImage(image)"
+              class="thumbnail-item"
+              :class="{ active: index === currentImageIndex }"
+              @click="selectImage(image, index)"
             >
               <img
                 v-if="image.url"
                 :src="image.url"
-                alt="Preview"
-                class="preview-image"
+                :alt="image.name"
+                class="thumbnail-image"
               />
-              <div v-else class="loading-preview light-text">
+              <div v-else-if="image.loadError" class="thumbnail-loading light-text error">
+                Failed to load
+              </div>
+              <div v-else class="thumbnail-loading light-text">
                 Loading...
               </div>
-              <span class="image-name light-text">{{ image.name }}</span>
               <button
                 @click.stop="removeImage(index)"
                 class="remove-button"
@@ -168,9 +231,9 @@ const removeImage = (index: number) => {
               >×</button>
             </div>
 
-            <label class="image-item add-more-button" :class="{ disabled: isLoading }">
-              <span>+</span>
-              <div class="light-text">{{ isLoading ? 'Загрузка...' : 'Добавить' }}</div>
+            <!-- Upload Button -->
+            <label class="thumbnail-item upload-button" :class="{ disabled: isLoading }">
+              <span class="plus-icon">+</span>
               <input
                 type="file"
                 accept="image/*"
@@ -179,47 +242,74 @@ const removeImage = (index: number) => {
                 class="hidden-input"
                 :disabled="isLoading"
               >
-              <div v-if="isLoading" class="upload-progress">
-                <div class="upload-progress-bar" :style="{ width: '50%' }"></div>
-                <div class="upload-progress-label light-text">Uploading...</div>
-              </div>
             </label>
           </div>
-        </section>
 
-        <!-- Defects List -->
-        <section class="defects-section">
-          <h2>Defects</h2>
-          <div class="defects-list">
-            <div
-              v-if="currentImage?.detections?.length"
-              v-for="(detection, index) in currentImage.detections"
-              :key="index"
-              class="defect-item"
-              :class="{
-                'defect-failed': !detection.passed,
-                'defect-rough': detection.isRough
-              }"
-            >
-              <div class="defect-header">
-                <span class="defect-name">{{ detection.className }}</span>
-                <span class="defect-status light-text" :class="{ failed: !detection.passed }">
-                  {{ detection.passed ? 'Passed' : 'Failed' }}
+          <!-- Upload Progress -->
+          <div v-if="isLoading" class="upload-progress-container">
+            <div class="upload-progress">
+              <div 
+                class="upload-progress-bar" 
+                :style="{ 
+                  width: `${selectedImages[selectedImages.length - 1]?.uploadProgress || 0}%` 
+                }"
+              ></div>
+            </div>
+            <span class="upload-progress-text light-text">
+              Uploading: {{ Math.round(selectedImages[selectedImages.length - 1]?.uploadProgress || 0) }}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Defects Section -->
+      <section class="defects-section">
+        <div class="defects-grid">
+          <div
+            v-if="currentImage?.detections?.length"
+            v-for="(detection, index) in currentImage.detections"
+            :key="index"
+            class="defect-card"
+            :class="{
+              'defect-failed': !detection.passed,
+              'defect-rough': detection.isRough
+            }"
+          >
+            <div class="defect-header">
+              <h3 class="defect-name medium-text">{{ detection.className }}</h3>
+              <div 
+                class="status-badge"
+                :class="{ failed: !detection.passed }"
+              >
+                {{ detection.passed ? 'PASSED' : 'FAILED' }}
+              </div>
+            </div>
+            <div class="defect-details light-text">
+              <div class="detail-row">
+                <span class="detail-label">Defects:</span>
+                <span>{{ detection.defectsCount }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Size:</span>
+                <span>{{ detection.calculatedSize.width.toFixed(2) }}x{{ detection.calculatedSize.height.toFixed(2) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Size check:</span>
+                <span :class="detection.sizePassed ? 'passed' : 'failed'">
+                  {{ detection.sizePassed ? 'Passed' : 'Failed' }}
                 </span>
               </div>
-              <div class="defect-details light-text">
-                <div>Defects count: {{ detection.defectsCount }}</div>
-                <div>Size: {{ detection.calculatedSize.width.toFixed(2) }}x{{ detection.calculatedSize.height.toFixed(2) }}</div>
-                <div>Size check: {{ detection.sizePassed ? 'Passed' : 'Failed' }}</div>
-                <div>Surface: {{ detection.isRough ? 'Rough' : 'Smooth' }}</div>
+              <div class="detail-row">
+                <span class="detail-label">Surface:</span>
+                <span>{{ detection.isRough ? 'Rough' : 'Smooth' }}</span>
               </div>
             </div>
-            <div v-else class="no-defects light-text">
-              {{ isLoading ? 'Analyzing defects...' : 'No defects detected' }}
-            </div>
           </div>
-        </section>
-      </div>
+          <div v-else class="no-defects light-text">
+            {{ isLoading ? 'Analyzing defects...' : 'No defects detected' }}
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -227,26 +317,22 @@ const removeImage = (index: number) => {
 <style scoped>
 .analysis-view {
   min-height: 100vh;
-  display: flex;
+  /*display: flex;*/
   flex-direction: column;
-  width: 100%;
   background: #FDF4E3;
 }
 
 .header {
   padding: 1.5rem 2rem;
   background: rgba(253, 244, 227, 0.8);
-  width: 100%;
+  border-bottom: 1px solid rgba(131, 131, 133, 0.2);
 }
 
 .header h1 {
-  color: #262626;
-  font-size: 1.5rem;
-  font-weight: 600;
   max-width: 1920px;
   margin: 0 auto;
-  width: 100%;
-  text-align: left;
+  color: #262626;
+  font-size: 1.8rem;
 }
 
 .main-content {
@@ -255,128 +341,152 @@ const removeImage = (index: number) => {
   max-width: 1920px;
   margin: 0 auto;
   width: 100%;
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
-  height: calc(100vh - 200px);
 }
 
+.top-section {
+  display: grid;
+  grid-template-columns: 500px minmax(auto, 50vw);
+  gap: 2rem;
+  height: 500px;
+  margin-bottom: 2rem;
+}
+
+/* Preview Section */
 .preview-section {
-  grid-column: 1;
-  grid-row: 1 / -1;
+  position: relative;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 12px;
   overflow: hidden;
+  height: 100%;
 }
 
 .preview-container {
   width: 100%;
   height: 100%;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(253, 244, 227, 0.5);
-  border-radius: 12px;
+  padding: 1rem;
+  position: relative;
 }
 
 .preview-image {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  display: block;
 }
 
-.no-preview, .loading-preview {
-  color: #262626;
+.nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(114, 155, 173, 0.9);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
   font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  z-index: 10;
 }
 
-.loading-preview {
-  color: #729BAD;
+.nav-button:hover {
+  opacity: 1;
+  background: #729BAD;
 }
 
+.nav-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.nav-button.prev {
+  left: 1rem;
+}
+
+.nav-button.next {
+  right: 1rem;
+}
+
+/* Image List Section */
 .image-list-section {
-  grid-column: 2;
-  grid-row: 1;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 12px;
-  padding: 1rem;
-}
-
-.image-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.image-list-header h2 {
-  color: #262626;
-  font-size: 1.2rem;
-  margin: 0;
+  overflow: hidden;
+  height: 100%;
+  max-width: 50vw;
+  margin-left: auto;
 }
 
 .image-list {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(calc(100% / 8), 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
   overflow-y: auto;
-  padding-right: 0.5rem;
+  align-items: start;
+  max-width: 50vw;
 }
 
-.image-list::-webkit-scrollbar {
-  width: 8px;
+@media (max-width: 1600px) {
+  .image-list {
+    grid-template-columns: repeat(auto-fit, minmax(calc(100% / 6), 1fr));
+  }
 }
 
-.image-list::-webkit-scrollbar-track {
-  background: rgba(253, 244, 227, 0.5);
-  border-radius: 4px;
+@media (max-width: 1200px) {
+  .image-list {
+    grid-template-columns: repeat(auto-fit, minmax(calc(100% / 4), 1fr));
+  }
 }
 
-.image-list::-webkit-scrollbar-thumb {
-  background: #729BAD;
-  border-radius: 4px;
-}
-
-.image-item {
+.thumbnail-item {
   position: relative;
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+  min-height: 80px;
+  max-height: 120px;
 }
 
-.image-item.active {
-  border-color: #729BAD;
-}
-
-.image-item:hover {
+.thumbnail-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.image-name {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 0.5rem;
-  background: rgba(253, 244, 227, 0.9);
+.thumbnail-item.active {
+  border: 2px solid #729BAD;
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #729BAD;
   font-size: 0.8rem;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .remove-button {
@@ -386,57 +496,60 @@ const removeImage = (index: number) => {
   background: rgba(253, 244, 227, 0.9);
   border: none;
   color: #729BAD;
-  width: 24px;
-  height: 24px;
-  border-radius: 12px;
-  font-size: 1rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: all 0.3s ease;
 }
 
-.image-item:hover .remove-button {
+.thumbnail-item:hover .remove-button {
   opacity: 1;
 }
 
-.add-more-button {
-  aspect-ratio: 1;
-  background: rgba(114, 155, 173, 0.1);
-  border: 2px dashed #729BAD;
-  border-radius: 8px;
-  cursor: pointer;
+/* Upload Button */
+.upload-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
+  background: rgba(114, 155, 173, 0.1);
+  border: 2px dashed #729BAD;
+  cursor: pointer;
   transition: all 0.3s ease;
-  color: #729BAD;
 }
 
-.add-more-button:hover:not(.disabled) {
+.upload-button:hover {
   background: rgba(114, 155, 173, 0.2);
 }
 
-.add-more-button.disabled {
+.upload-button.disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.add-more-button span {
+.plus-icon {
   font-size: 2rem;
-  margin-bottom: 0.5rem;
+  color: #729BAD;
+}
+
+/* Upload Progress */
+.upload-progress-container {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(131, 131, 133, 0.2);
 }
 
 .upload-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 4px;
   background: rgba(114, 155, 173, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .upload-progress-bar {
@@ -445,84 +558,104 @@ const removeImage = (index: number) => {
   transition: width 0.3s ease;
 }
 
-.upload-progress-label {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 0;
-  right: 0;
+.upload-progress-text {
+  display: block;
   text-align: center;
   font-size: 0.8rem;
   color: #729BAD;
 }
 
+/* Defects Section */
 .defects-section {
-  grid-column: 2;
-  grid-row: 2;
+  padding: 1rem;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 12px;
-  padding: 1rem;
-  overflow-y: auto;
 }
 
-.defects-list {
-  display: flex;
-  flex-direction: column;
+.defects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
 }
 
-.defect-item {
+.defect-card {
   background: rgba(255, 255, 255, 0.7);
-  border: 1px solid #838385;
   border-radius: 8px;
-  padding: 1rem;
-  color: #262626;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.defect-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .defect-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .defect-name {
-  font-weight: 600;
+  margin: 0;
   color: #262626;
+  font-size: 1.2rem;
 }
 
-.defect-status {
-  padding: 0.25rem 0.5rem;
+.status-badge {
+  padding: 0.4rem 0.8rem;
   border-radius: 4px;
   background: #729BAD;
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
 }
 
-.defect-status.failed {
+.status-badge.failed {
   background: #838385;
 }
 
 .defect-details {
-  font-size: 0.9rem;
-  color: #262626;
   display: grid;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
-.defect-item.defect-failed {
-  border-color: #838385;
-  background: rgba(131, 131, 133, 0.1);
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
 }
 
-.defect-item.defect-rough {
-  border-color: #729BAD;
-  background: rgba(114, 155, 173, 0.1);
+.detail-label {
+  color: rgba(38, 38, 38, 0.7);
+}
+
+.passed {
+  color: #729BAD;
+}
+
+.failed {
+  color: #838385;
 }
 
 .no-defects {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
   color: #262626;
   font-style: italic;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.thumbnail-loading.error {
+  color: #838385;
+  font-size: 0.7rem;
   text-align: center;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 </style> 
