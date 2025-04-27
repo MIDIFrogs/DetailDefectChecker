@@ -13,8 +13,6 @@ by [PerdoTeam [MIDIFrogs]](https://github.com/MIDIFrogs)
 - Installed Python v3.10+
 - [Ultralytics](https://github.com/ultralytics/ultralytics) library (can be downloaded from requirements)
 
-## Quick start (Jupiter)
-
 ## Getting started
 ### Server
 1. Open the terminal in repo directory
