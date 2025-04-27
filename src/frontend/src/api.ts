@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance } from 'axios';
 
 const api: AxiosInstance = axios.create({
-  baseURL: 'https://your-api-endpoint.com/api'
+  baseURL: 'https://localhost:/api'
 });
 
 export const processImage = (image: File): Promise<any> => {
