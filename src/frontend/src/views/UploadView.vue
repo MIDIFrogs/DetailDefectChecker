@@ -4,6 +4,33 @@ import { useRouter } from 'vue-router';
 import { processImage } from '../api';
 import UploadIcon from '../assets/UploadIcon.svg';
 
+interface Detection {
+  bbox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  calculatedSize: {
+    width: number;
+    height: number;
+  };
+  className: string;
+  defectsCount: number;
+  isRough: boolean;
+  passed: boolean;
+  sizePassed: boolean;
+}
+
+interface ImageFile {
+  name: string;
+  size: number;
+  url?: string;
+  id?: string;
+  uploadProgress?: number;
+  detections?: Detection[];
+}
+
 const router = useRouter();
 const isDragging = ref(false);
 
@@ -41,14 +68,30 @@ const handleFiles = async (files: File[]) => {
       return;
     }
 
-    // Store files in state management (we'll implement this later)
-    localStorage.setItem('uploadedImages', JSON.stringify(
-      imageFiles.map(file => ({ name: file.name, size: file.size }))
-    ));
+    // Create object URLs for immediate preview
+    const processedFiles: ImageFile[] = imageFiles.map(file => ({
+      name: file.name,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      uploadProgress: 0
+    }));
+
+    // Store files with their URLs
+    localStorage.setItem('uploadedImages', JSON.stringify(processedFiles));
 
     // Process first image
-    await processImage(imageFiles[0]);
+    const processedData = await processImage(imageFiles[0]);
     
+    // Update the first image with its processed data
+    processedFiles[0] = {
+      ...processedFiles[0],
+      id: processedData.id,
+      detections: processedData.detections
+    };
+
+    // Update storage with processed data
+    localStorage.setItem('uploadedImages', JSON.stringify(processedFiles));
+
     // Navigate to analysis page
     router.push('/analysis');
   } catch (error) {

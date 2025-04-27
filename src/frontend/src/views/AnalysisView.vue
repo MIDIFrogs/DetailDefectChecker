@@ -350,10 +350,12 @@ const removeImage = (index: number) => {
 
 .top-section {
   display: grid;
-  grid-template-columns: 500px minmax(auto, 50vw);
+  grid-template-columns: minmax(30%, 49%) minmax(30%, 49%);
   gap: 2rem;
   height: 500px;
   margin-bottom: 2rem;
+  width: 100%;
+  justify-content: space-between;
 }
 
 /* Preview Section */
@@ -363,6 +365,7 @@ const removeImage = (index: number) => {
   border-radius: 12px;
   overflow: hidden;
   height: 100%;
+  min-width: 30%;
 }
 
 .preview-container {
@@ -428,8 +431,7 @@ const removeImage = (index: number) => {
   border-radius: 12px;
   overflow: hidden;
   height: 100%;
-  max-width: 50vw;
-  margin-left: auto;
+  min-width: 30%;
 }
 
 .image-list {
