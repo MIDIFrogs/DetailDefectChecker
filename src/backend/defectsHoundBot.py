@@ -43,15 +43,14 @@ def download_image(image_id: int) -> bytes:
 
 
 # Bot helper functions
-def createAnswer(response, id):
-    answer = ""
-    
+def createAnswer(response, id):    
     for detection in response.detections:
+        answer = f"Деталь: {detection.class_name}\n"
         if detection.passed:
             answer += "Деталь идеальна: ✅\n"
         else:
             answer += "Деталь не прошла проверку: ❌\n"
-            answer += f"Шероховатость: {'✅' if detection.is_rough else '❌'}\n"
+            answer += f"Шероховатость: {'✅' if not detection.is_rough else '❌'}\n"
             answer += f"Соответствие размеру: {'✅' if detection.size_passed else '❌'}\n"
             answer += f"Количество дефектов: {detection.defects_count}\n"
         bot.send_message(id, answer)
