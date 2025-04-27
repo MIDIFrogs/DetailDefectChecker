@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_file
 import os
 from typing import List, Dict
 from PIL import Image
+import requests
 from detections_service import process_image
 from image_service import save_image
 from flask_cors import CORS
