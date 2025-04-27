@@ -214,11 +214,11 @@ const removeImage = (index: number) => {
 }
 
 .header h1 {
-  color: #2c3e50;
+  color: #262626;
   font-size: 1.5rem;
   font-weight: 600;
   max-width: 1920px;
-  margin: 0;
+  margin: 0 auto;
   width: 100%;
   text-align: left;
 }
@@ -244,13 +244,13 @@ const removeImage = (index: number) => {
 .preview-container {
   width: 100%;
   height: 100%;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  /*border: 1px solid #eee;*/
+  /*border-radius: 8px;*/
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f8f8;
+  background: rgba(255, 255, 255, 0);
 }
 
 .preview-image {

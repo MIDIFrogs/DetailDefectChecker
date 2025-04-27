@@ -60,7 +60,9 @@ const handleFiles = async (files: File[]) => {
 <template>
   <div class="upload-view">
     <header class="header">
-      <h1>Image Analyzer</h1>
+      <div class="header-content">
+        <h1>Image Analyzer</h1>
+      </div>
     </header>
 
     <main class="main-content">
@@ -96,34 +98,42 @@ const handleFiles = async (files: File[]) => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .header {
   padding: 1.5rem 2rem;
   background: white;
+  width: 100%;
+}
+
+.header-content {
+  max-width: 1920px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .header h1 {
-  color: #2c3e50;
+  color: #262626;
   font-size: 1.5rem;
   font-weight: 600;
-  max-width: 1920px;
-  margin: 0;
-  width: 100%;
   text-align: left;
 }
 
 .main-content {
   flex: 1;
-  padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 80px);
+  width: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
 .drop-zone {
   width: 80%;
+  max-width: 1920px;
   height: 70vh;
   border: 2px dashed #ccc;
   border-radius: 12px;
@@ -141,6 +151,8 @@ const handleFiles = async (files: File[]) => {
 
 .drop-zone-content {
   text-align: center;
+  width: 100%;
+  padding: 2rem;
 }
 
 .upload-icon {
@@ -152,7 +164,7 @@ const handleFiles = async (files: File[]) => {
 .upload-button {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  background: #4CAF50;
+  background: #729BAD;
   color: white;
   border-radius: 4px;
   cursor: pointer;
@@ -162,7 +174,7 @@ const handleFiles = async (files: File[]) => {
 }
 
 .upload-button:hover {
-  background: #45a049;
+  background: #60859e;
 }
 
 .hidden-input {

@@ -3,7 +3,7 @@ import axios, { type AxiosInstance } from 'axios';
 const api: AxiosInstance = axios.create({
   baseURL: 'http://localhost:5000/api',
   headers: {
-    'Content-Type': 'multipart/form-data',
+    'Accept': 'application/json',
     'Access-Control-Allow-Origin': '*'
   }
 });
@@ -38,7 +38,11 @@ export const processImage = async (image: File): Promise<ProcessedImage> => {
   formData.append('scale_x', '0.01');
   formData.append('scale_y', '0.01');
 
-  const response = await api.post('/process', formData);
+  const response = await api.post('/process', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
   return response.data;
 };
 

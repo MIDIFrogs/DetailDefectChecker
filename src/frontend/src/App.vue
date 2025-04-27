@@ -11,9 +11,9 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: Unbounded-regular;
   line-height: 1.6;
-  color: #333;
-  background: #f5f5f5;
+  color: #262626;
+  background: #fdf4e3;
 }
 </style>
