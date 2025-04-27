@@ -105,8 +105,16 @@ def process_image(image: Image.Image, detail_results: list, defect_results: list
             is_noisy_part = is_noisy(part_image)
             
             # Count the number of defects for the part
-            part_defects = [defect for defect in defect_results[0].boxes.xyxy if defect[0] == i]
-            defects_count = len(part_defects)
+            defects_count = 0
+            for defect in defect_results:
+                for defect_bbox in defect.boxes.xyxy:
+                    defect_x1, defect_y1, defect_x2, defect_y2 = [int(coord) for coord in defect_bbox]
+                    
+                    # Check if the part bounding box intersects with the defect bounding box
+                    if (x1 <= defect_x2 and x2 >= defect_x1 and
+                        y1 <= defect_y2 and y2 >= defect_y1):
+                        defects_count += 1
+
             
             # Determine the class name based on the size
             class_id = int(bbox.cls[0])

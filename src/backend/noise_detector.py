@@ -20,7 +20,7 @@ def calculate_noise_metrics(pil_data):
 
     return mean_noise, std_noise
 
-def is_noisy(image_path, mean_noise_threshold=10, std_noise_threshold=20):
+def is_noisy(image_path, mean_noise_threshold=128, std_noise_threshold=128):
     """
     Checks if an image is noisy based on the calculated noise metrics.
     
@@ -33,7 +33,7 @@ def is_noisy(image_path, mean_noise_threshold=10, std_noise_threshold=20):
         bool: True if the image is noisy, False otherwise.
     """
     mean_noise, std_noise = calculate_noise_metrics(image_path)
-    
+    print("Noise:", mean_noise, std_noise)
     if mean_noise > mean_noise_threshold or std_noise > std_noise_threshold:
         return True
     else:

@@ -431,7 +431,7 @@ const removeImage = (index: number) => {
   border-radius: 12px;
   overflow: hidden;
   height: 100%;
-  min-width: 30%;
+  min-width: 80%;
 }
 
 .image-list {
@@ -442,6 +442,7 @@ const removeImage = (index: number) => {
   padding: 1rem;
   overflow-y: auto;
   align-items: start;
+  min-width: 100%;
   max-width: 50vw;
 }
 

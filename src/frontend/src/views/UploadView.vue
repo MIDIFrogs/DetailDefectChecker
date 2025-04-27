@@ -141,6 +141,7 @@ const handleFiles = async (files: File[]) => {
 <style scoped>
 .medium-text {
   font-weight: 500;
+  font-size: x-large;
 }
 
 .light-text {
