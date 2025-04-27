@@ -3,6 +3,7 @@ import os
 from typing import List, Dict
 from PIL import Image
 from detections_service import process_image
+from image_service import save_image
 
 app = Flask(__name__)
 
@@ -20,10 +21,8 @@ def process():
     scale_y = request.form.get("scale_y", 0.01, type=float)
 
     image = Image.open(image_file)
+    image_id = save_image(image, PROCESSED_IMAGES_DIR)
     result = process_image(image, scale_x, scale_y)
-    image_id = len(os.listdir(PROCESSED_IMAGES_DIR))
-    image_path = f"{PROCESSED_IMAGES_DIR}/{image_id}.png"
-    image.save(image_path)
     result["downloadId"] = image_id
     return jsonify(result)
 
