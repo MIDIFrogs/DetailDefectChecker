@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { processImage } from '../api';
+import UploadIcon from '../assets/UploadIcon.svg';
 
 const router = useRouter();
 const isDragging = ref(false);
@@ -75,10 +76,11 @@ const handleFiles = async (files: File[]) => {
         @drop="handleDrop"
       >
         <div class="drop-zone-content">
-          <i class="upload-icon">📁</i>
-          <p>Перетащите изображения сюда или</p>
+          <img :src="UploadIcon" alt="Upload" class="upload-icon" />
+          <p class="medium-text">Перетащите изображение</p>
+          <p class="light-text">или нажмите сюда</p>
           <label class="upload-button">
-            Выбрать файл
+            <span class="regular-text">Выбрать файл</span>
             <input
               type="file"
               accept="image/*"
@@ -94,16 +96,29 @@ const handleFiles = async (files: File[]) => {
 </template>
 
 <style scoped>
+.medium-text {
+  font-weight: 500;
+}
+
+.light-text {
+  font-weight: 300;
+}
+
+.regular-text {
+  font-weight: 400;
+}
+
 .upload-view {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   width: 100%;
+  background: #FDF4E3;
 }
 
 .header {
   padding: 1.5rem 2rem;
-  background: white;
+  background: rgba(253, 244, 227, 0.8);
   width: 100%;
 }
 
@@ -135,30 +150,36 @@ const handleFiles = async (files: File[]) => {
   width: 80%;
   max-width: 1920px;
   height: 70vh;
-  border: 2px dashed #ccc;
+  border: 4px dashed #838385;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(253, 244, 227, 0.5);
 }
 
 .drop-zone.is-dragging {
-  border-color: #4CAF50;
-  background: rgba(76, 175, 80, 0.1);
+  border-color: #729BAD;
+  background: rgba(253, 244, 227, 0.7);
 }
 
 .drop-zone-content {
   text-align: center;
   width: 100%;
   padding: 2rem;
+  color: #262626;
+}
+
+.drop-zone-content p {
+  margin: 0.5rem 0;
 }
 
 .upload-icon {
-  font-size: 4rem;
+  width: 80px;
+  height: 80px;
   margin-bottom: 1.5rem;
-  display: block;
+  color: #729BAD;
 }
 
 .upload-button {

@@ -1,6 +1,6 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios from 'axios';
 
-const api: AxiosInstance = axios.create({
+const api = axios.create({
   baseURL: 'http://localhost:5000/api',
   headers: {
     'Accept': 'application/json'
@@ -32,17 +32,24 @@ export interface ProcessedImage {
   downloadId: string;
 }
 
-export const processImage = async (image: File): Promise<ProcessedImage> => {
+export const processImage = async (image: File, onProgress?: (progress: number) => void): Promise<ProcessedImage> => {
   const formData = new FormData();
   formData.append('image', image);
   formData.append('scale_x', '0.01');
   formData.append('scale_y', '0.01');
 
-  const response = await api.post('/process', formData, {
+  const response = await api.post<ProcessedImage>('/process', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
+    },
+    onUploadProgress: (progressEvent) => {
+      if (progressEvent.total && onProgress) {
+        const progress = (progressEvent.loaded / progressEvent.total) * 100;
+        onProgress(progress);
+      }
     }
   });
+
   return response.data;
 };
 
