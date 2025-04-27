@@ -5,8 +5,16 @@ from PIL import Image
 import requests
 from detections_service import process_image
 from image_service import save_image
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Folder to store processed images
 PROCESSED_IMAGES_DIR = "runtime/processed"

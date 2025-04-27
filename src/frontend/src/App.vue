@@ -1,28 +1,19 @@
 <template>
-  <div id="app">
-    <Header />
-    <router-view></router-view>
-    <Footer />
-  </div>
+  <RouterView />
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-import { useRouter } from 'vue-router';
-import ImageUploadView from './components/ImageUploadView.vue';
-import Header from './components/Header.vue';
-import Footer from './components/Footer.vue';
+<style>
+/* Reset default styles */
+* {
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-export default defineComponent({
-  name: 'App',
-  components: {
-    Header,
-    Footer
-  },
-  setup() {
-    const router = useRouter();
-    router.push({ name: 'ImageUpload' });
-    return {};
-  }
-});
-</script>
+body {
+  font-family: Unbounded-regular;
+  line-height: 1.6;
+  color: #262626;
+  background: #fdf4e3;
+}
+</style>
