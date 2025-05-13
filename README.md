@@ -34,5 +34,9 @@ by [PerdoTeam [MIDIFrogs]](https://github.com/MIDIFrogs)
 5. Run `python defectsHoundBot.py`
 6. Feel free to use your bot!
 
+## Gallery
+![Frontend preview](https://github.com/user-attachments/assets/e5ca59fb-7a79-4f5e-bc6a-cdfa248cd14e)
+
+
 ## Need help?
 Write me in [Telegram](https://t.me/ioexcept10n) or open an [issue](https://github.com/MIDIFrogs/DetailDefectChecker/issues/new/choose). Feel free to ask any questions!
